@@ -17,17 +17,47 @@ Replace this paragraph with your own summary of what your version does.
 
 ## How The System Works
 
-Explain your design in plain language.
+In the real world, content recommendation systems use data about its users, content, and the environment a user exists in (e.g. using web crawlers to see what people in a user's country are talking about) to attempt to present users with the right content at the right time. They typically use a blend of Collaborative Filtering (CF) and Content-Based Filtering (CBF), as well as other statistical methods, to transform this data into "scores" that their algorithms can then action on, based on business logic. For most large platforms the general cycle of going from data -> recommendation is:
 
-Some prompts to answer:
+  - Data Retrieval: gather a large # of recommendation candidates
+  - Data Filtering: remove vast majority of the candidate pool based on business logic (e.g. remove already seen or inappropriate content)
+  - Ranking: order candidates precisely based on feature data
+  - Re-ranking: use business logic and heuristics to decide on final recommendations
 
-- What features does each `Song` use in your system
-  - For example: genre, mood, energy, tempo
-- What information does your `UserProfile` store
-- How does your `Recommender` compute a score for each song
-- How do you choose which songs to recommend
+For this Music Recommender Simulation app, I have chosen the following design:
 
-You can include a simple diagram or bullet list if helpful.
+**Song features** — each `Song` in the catalog carries 8 attributes:
+
+- `genre` — categorical label (e.g. pop, lofi, rock, jazz, ambient, synthwave, indie pop)
+- `mood` — categorical label (e.g. happy, chill, intense, moody, focused, relaxed)
+- `energy` — float 0–1; how driving or restful the track feels
+- `tempo_bpm` — beats per minute (integer, range ~60–160 in this catalog)
+- `valence` — float 0–1; musical positivity / brightness
+- `danceability` — float 0–1; how groove-friendly the rhythm is
+- `acousticness` — float 0–1; absence of electronic production
+
+**UserProfile fields** — the profile stores four preference signals:
+
+- `favorite_genre` — the genre the user most wants to hear
+- `favorite_mood` — the mood the user is targeting right now
+- `target_energy` — a float 0–1 representing the user's desired intensity level
+- `likes_acoustic` — boolean; `True` gives an extra boost to tracks with high acousticness
+
+**Scoring formula** — `score_song` computes a weighted sum for each candidate song:
+
+```
+score = (GENRE_WEIGHT  × genre_match)
+      + (MOOD_WEIGHT   × mood_match)
+      + (ENERGY_WEIGHT × (1 − |target_energy − song.energy|))
+      + (ACOUSTIC_BONUS × song.acousticness   ← only if likes_acoustic is True)
+```
+
+- `genre_match` and `mood_match` are binary (1.0 for an exact string match, 0.0 otherwise)
+- The energy term rewards closeness: a perfect energy match yields 1.0, the worst possible gap yields 0.0
+- The acoustic bonus scales continuously with `acousticness`, so partially acoustic tracks earn partial credit
+- Default weights: `GENRE_WEIGHT = 2.0`, `MOOD_WEIGHT = 1.5`, `ENERGY_WEIGHT = 1.0`, `ACOUSTIC_BONUS = 0.5`
+
+**Selecting recommendations** — after every song in the catalog is scored, results are sorted in descending order by score and the top `k` (default 5) are returned. Each result is a tuple of `(song, score, explanation)` where the explanation is a human-readable string listing which features matched and contributed to the score.
 
 ---
 
