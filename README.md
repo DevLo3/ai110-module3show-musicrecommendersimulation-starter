@@ -62,7 +62,7 @@ score = (0.35 × (1 − |Δenergy|))
 
 **Selecting recommendations** — after every candidate song is scored and ranked, the top `k` (default 5) results are returned subject to the artist deduplication and novelty cap rules described above. Each result is a tuple of `(song, score, explanation)` where the explanation is a human-readable string listing which features matched and how much each contributed to the final score.
 
-**Biases** - given the hard filter we use for mood, it is possible this may cause the system to over prioritize mood, preventing itself from recognizing and recommending songs that may otherwise score higher than the current top 5 scored songs. This exposes the simple categorization of songs by mood can have an outsized effect on the results of a recommendation platform and its user experience.
+**System Biases** - given the hard filter we use for mood, it is possible this may cause the system to over prioritize mood, preventing itself from recognizing and recommending songs that may otherwise score higher than the current top 5 scored songs. This exposes the simple categorization of songs by mood can have an outsized effect on the results of a recommendation platform and its user experience.
 
 ---
 
