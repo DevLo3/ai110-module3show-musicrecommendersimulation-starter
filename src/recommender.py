@@ -45,21 +45,21 @@ class Recommender:
     Required by tests/test_recommender.py
     """
     def __init__(self, songs: List[Song]):
+        """Initializes the recommender with a list of Song objects."""
         self.songs = songs
 
     def recommend(self, user: UserProfile, k: int = 5) -> List[Song]:
+        """Returns the top k Song recommendations for the given UserProfile."""
         # TODO: Implement recommendation logic
         return self.songs[:k]
 
     def explain_recommendation(self, user: UserProfile, song: Song) -> str:
+        """Returns a human-readable string explaining why a song was recommended to the user."""
         # TODO: Implement explanation logic
         return "Explanation placeholder"
 
 def load_songs(csv_path: str) -> List[Dict]:
-    """
-    Loads songs from a CSV file.
-    Required by src/main.py
-    """
+    """Reads songs.csv and returns a list of song dicts with numeric fields cast to their correct types."""
     songs = []
     with open(csv_path, newline='') as f:
         reader = csv.DictReader(f)
@@ -74,14 +74,7 @@ def load_songs(csv_path: str) -> List[Dict]:
     return songs
 
 def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
-    """
-    Scores a single song against user preferences.
-    Required by recommend_songs() and src/main.py
-
-    Returns a tuple of (score, reasons) where:
-      - score is a float in [0, 1] (may dip below 0 after dislike penalty)
-      - reasons is a list of human-readable strings explaining the score
-    """
+    """Scores a single song against the user's taste profile using weighted audio feature similarity, returning a (score, reasons) tuple."""
     score = 0.0
     reasons = []
 
@@ -131,10 +124,36 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
     return score, reasons
 
 def recommend_songs(user_prefs: Dict, songs: List[Dict], k: int = 5) -> List[Tuple[Dict, float, str]]:
-    """
-    Functional implementation of the recommendation logic.
-    Required by src/main.py
-    """
-    # TODO: Implement scoring and ranking logic
-    # Expected return format: (song_dict, score, explanation)
-    return []
+    """Filters songs by mood, scores and ranks all candidates, then returns the top k results with artist deduplication and a novelty cap applied."""
+    liked    = set(s['id'] for s in user_prefs.get('liked_songs', []))
+    history  = set(s['id'] for s in user_prefs.get('listening_history', []))
+    known    = liked | history
+
+    # Step 1 — Hard filter: only keep songs matching the user's current mood
+    candidates = [s for s in songs if s['mood'] == user_prefs.get('mood', '')]
+
+    # Step 2 — Score every candidate and sort high to low
+    scored = [(song, *score_song(user_prefs, song)) for song in candidates]
+    scored.sort(key=lambda x: x[1], reverse=True)
+
+    # Step 3 — Ranking: apply artist deduplication and novelty cap
+    results = []
+    seen_artists = set()
+    known_count  = 0
+
+    for song, score, reasons in scored:
+        if len(results) == k:
+            break
+        if song['artist'] in seen_artists:
+            continue
+        if song['id'] in known and known_count >= 3:
+            continue
+
+        seen_artists.add(song['artist'])
+        if song['id'] in known:
+            known_count += 1
+
+        explanation = ' | '.join(reasons)
+        results.append((song, score, explanation))
+
+    return results
