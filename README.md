@@ -36,28 +36,31 @@ For this Music Recommender Simulation app, I have chosen the following design:
 - `danceability` — float 0–1; how groove-friendly the rhythm is
 - `acousticness` — float 0–1; absence of electronic production
 
-**UserProfile fields** — the profile stores four preference signals:
+**User inputs** — the system accepts four types of signals from the user:
 
-- `favorite_genre` — the genre the user most wants to hear
-- `favorite_mood` — the mood the user is targeting right now
-- `target_energy` — a float 0–1 representing the user's desired intensity level
-- `likes_acoustic` — boolean; `True` gives an extra boost to tracks with high acousticness
+- `liked_songs` — list of songs the user has explicitly liked (active engagement, weighted 2×)
+- `listening_history` — list of songs the user has played past 50% (passive engagement, weighted 1×)
+- `disliked_songs` — list of songs the user has explicitly disliked (used to penalize similar candidates)
+- `current_mood` — the mood the user is targeting right now (used as a hard filter)
 
-**Scoring formula** — `score_song` computes a weighted sum for each candidate song:
+**Scoring formula** — `score_song` computes a weighted sum of audio feature similarity scores for each candidate song. All numerical features are normalized to [0–1] before scoring. Each feature term rewards closeness to the user's taste profile using the formula `1 − |candidate_value − profile_value|`, where a perfect match yields 1.0 and maximum distance yields 0.0:
 
 ```
-score = (GENRE_WEIGHT  × genre_match)
-      + (MOOD_WEIGHT   × mood_match)
-      + (ENERGY_WEIGHT × (1 − |target_energy − song.energy|))
-      + (ACOUSTIC_BONUS × song.acousticness   ← only if likes_acoustic is True)
+score = (0.35 × (1 − |Δenergy|))
+      + (0.30 × (1 − |Δacousticness|))
+      + (0.20 × (1 − |Δtempo_normalized|))
+      + (0.15 × genre_match)
+      − (dislike_similarity × PENALTY_FACTOR)
 ```
 
-- `genre_match` and `mood_match` are binary (1.0 for an exact string match, 0.0 otherwise)
-- The energy term rewards closeness: a perfect energy match yields 1.0, the worst possible gap yields 0.0
-- The acoustic bonus scales continuously with `acousticness`, so partially acoustic tracks earn partial credit
-- Default weights: `GENRE_WEIGHT = 2.0`, `MOOD_WEIGHT = 1.5`, `ENERGY_WEIGHT = 1.0`, `ACOUSTIC_BONUS = 0.5`
+- Audio features (`energy`, `acousticness`, `tempo_bpm`) are the primary drivers of similarity
+- `genre_match` is binary (1.0 for an exact match, 0.0 otherwise) and acts as a secondary signal
+- The dislike penalty subtracts from the final score proportionally to how similar the candidate is to disliked songs
+- `mood` is not part of the scoring formula — it is enforced as a hard filter before scoring begins
 
-**Selecting recommendations** — after every song in the catalog is scored, results are sorted in descending order by score and the top `k` (default 5) are returned. Each result is a tuple of `(song, score, explanation)` where the explanation is a human-readable string listing which features matched and contributed to the score.
+**Algorithm recipe** — the full recommendation pipeline runs in five steps. First, a hard filter removes any song that does not match the user's current mood — these songs are excluded entirely and never scored. Second, a user taste profile is built by computing a weighted average feature vector across the user's liked songs (weight 2) and listening history (weight 1), producing a single vector that represents the user's "ideal song" in feature space. Third, every remaining candidate song is scored against that profile using the formula above, with the dislike penalty applied at the end of each score calculation. Fourth, the scored pool is sorted in descending order and walked top-to-bottom, skipping any song whose artist is already represented in the result set, to enforce artist diversity. Fifth, a novelty cap ensures that no more than 3 of the 5 returned songs are ones the user has already liked or played, guaranteeing some discovery in every result set.
+
+**Selecting recommendations** — after every candidate song is scored and ranked, the top `k` (default 5) results are returned subject to the artist deduplication and novelty cap rules described above. Each result is a tuple of `(song, score, explanation)` where the explanation is a human-readable string listing which features matched and how much each contributed to the final score.
 
 ---
 
