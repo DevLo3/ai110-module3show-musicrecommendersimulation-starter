@@ -107,7 +107,7 @@ You can add more tests in `tests/test_recommender.py`.
 
 The first working run of the recommender using a single chill lofi user profile, before multi-profile testing was added.
 
-![Early single-profile output](results/Screenshot%202026-04-14%20at%204.57.55%20PM.png)
+![Early single-profile output](<results/Screenshot 2026-04-14 at 4.57.55 PM.png>)
 
 ---
 
@@ -115,7 +115,7 @@ The first working run of the recommender using a single chill lofi user profile,
 
 Output from the three standard user profiles. Storm Runner scores 0.99 for Deep Intense Rock and Library Rain scores 0.97 for Chill Lofi — both near-perfect audio feature matches. High-Energy Pop and Deep Intense Rock are each limited to two results due to the mood hard filter reducing the candidate pool.
 
-![Standard profiles output](results/Screenshot%202026-04-14%20at%2010.59.45%20PM.png)
+![Standard profiles output](<results/Screenshot 2026-04-14 at 10.59.45 PM.png>)
 
 ---
 
@@ -123,7 +123,7 @@ Output from the three standard user profiles. Storm Runner scores 0.99 for Deep 
 
 Output from the three edge case profiles. Contradicting Preferences scores collapse to 0.21–0.36 because the mood filter and the audio profile disagree. Orphan Mood returns a single perfect 1.00 result — a failure mode rather than a success. Genre Dead End scores 0.72–0.83 with no genre matches, showing the 0.15 genre weight being silently outweighed on every result.
 
-![Adversarial profiles output](results/Screenshot%202026-04-14%20at%2011.00.00%20PM.png)
+![Adversarial profiles output](<results/Screenshot 2026-04-14 at 11.00.00 PM.png>)
 
 ---
 
